@@ -13,7 +13,7 @@ image:
 ## Set the admin user
 adminUser: admin
 ## Make sure to replace the default password
-adminPassword: password
+adminPassword: P@ssw0rd
 service:
   name: jenkins-k8s
   type: LoadBalancer

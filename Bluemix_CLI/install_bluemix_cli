@@ -1,0 +1,77 @@
+#!/bin/sh -e
+
+# Installer to install CLI into your system
+
+DIR=$(dirname "$0")
+
+if [ "$(id -u)" != "0" ]; then
+	echo "Superuser privileges are required to run this script."
+	sudo "$0" "$@"
+	exit
+fi
+
+echo "Copying files ..."
+
+mkdir -p /usr/local/Bluemix/bin/cfcli
+mkdir -p /usr/local/Bluemix/bx
+
+cp -f "${DIR}/bin/NOTICE" /usr/local/Bluemix/bin/
+cp -f "${DIR}/bin/LICENSE" /usr/local/Bluemix/bin/
+cp -f "${DIR}/bin/bluemix" /usr/local/Bluemix/bin/
+cp -f "${DIR}/bin/bluemix-analytics" /usr/local/Bluemix/bin/
+cp -f "${DIR}/bin/cfcli/cf" /usr/local/Bluemix/bin/cfcli/
+cp -f "${DIR}/bx/bash_autocomplete" /usr/local/Bluemix/bx/
+cp -f "${DIR}/bx/zsh_autocomplete" /usr/local/Bluemix/bx/
+
+ln -sf /usr/local/Bluemix/bin/bluemix /usr/local/Bluemix/bin/bx
+ln -sf /usr/local/Bluemix/bin/bluemix /usr/local/bin/bluemix
+ln -sf /usr/local/Bluemix/bin/bluemix /usr/local/bin/bx
+ln -sf /usr/local/Bluemix/bin/bluemix-analytics /usr/local/bin/bluemix-analytics
+
+chown -R root:root /usr/local/Bluemix
+chmod -R 755 /usr/local/Bluemix
+
+updateConfig()
+{
+	file_path=$1
+	key=$2
+	content=$3
+
+	if [ -f "$file_path" ] && ! grep -q "$key" "$file_path" ; then
+		chmod 666 "$file_path"
+		printf "\\n### Added by IBM Cloud CLI\\n" >> "$file_path"
+		echo "$content" >> "$file_path"
+		chmod 644 "$file_path"
+	fi
+}
+
+updateAutocomplete()
+{
+	file_path=$1
+	script=$2
+	updateConfig "$file_path" "/usr/local/Bluemix/bx/$script" "source /usr/local/Bluemix/bx/$script"
+}
+
+# add autocomplete to bash
+if [ ! -d "/etc/bash_completion.d" ]; then 
+	# login shell
+	updateAutocomplete "/etc/profile" "bash_autocomplete"
+	# non-login shell
+	updateAutocomplete "/etc/bash.bashrc" "bash_autocomplete"
+else
+	cp -f "${DIR}/bx/bash_autocomplete" /etc/bash_completion.d/bluemix_cli_autocomplete
+	chown root:root /etc/bash_completion.d/bluemix_cli_autocomplete
+	chmod 644 /etc/bash_completion.d/bluemix_cli_autocomplete
+fi
+
+# add autocomplete to zsh
+updateAutocomplete "/etc/zsh/zshrc" "zsh_autocomplete"
+
+echo "IBM Cloud Command Line Interface(IBM Cloud CLI) is installed successfully."
+echo "To get started, open a new Linux terminal and enter \"bluemix help\", or enter \"bx help\" as short name."
+echo ""
+echo "With IBM Cloud CLI 0.4.0 or later, the CLI can automatically collect diagnostic and usage information and send it to cloud platform for analysis."
+echo "This information will help us better understand current client usage and plan for future use. No personally identifiable data is collected."
+echo ""
+echo "To stop collecting information, you can run the following command:"
+echo "        'bluemix config --usage-stats-collect false'"
